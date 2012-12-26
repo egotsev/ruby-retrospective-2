@@ -1,4 +1,4 @@
-class Integer	
+class Integer
   def prime_divisors
     2.upto(abs).select { |n| self % n == 0 and n.prime? }
   end
