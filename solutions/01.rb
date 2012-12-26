@@ -11,10 +11,10 @@ end
 class Range
   def fizzbuzz
     map do |n|
-      if n % 15 == 0 then :fizzbuzz
-      elsif n % 3 == 0 then :fizz
-      elsif n % 5 == 0 then :buzz
-      else n
+      if    n % 15 == 0 then :fizzbuzz
+      elsif n % 3  == 0 then :fizz
+      elsif n % 5  == 0 then :buzz
+      else  n
       end
     end
   end
