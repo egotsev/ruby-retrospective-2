@@ -1,9 +1,28 @@
+module Patterns
+  PHONE_CODE = /((\b00|\+)[1-9]\d{0,2}|0)/
+  PHONE      = /#{PHONE_CODE}([- \(\)]{,2}\d)\g<3>{5,10}/
+  TLD        = /[a-zA-Z]{2,3}(\.[a-zA-Z]{2})?/
+  HOSTNAME   = /([0-9a-zA-Z]([0-9a-zA-Z-]{,61}[0-9a-zA-Z])?\.)+#{TLD}/
+  EMAIL      = /([a-zA-Z0-9])[\w\+\.-]{,200}@#{HOSTNAME}/
+  IP_ADRESS  = /([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.\g<1>){3}/
+  TIME       = /(0[1-9]|1[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]/
+  DATE       = /\d{4}-(0[1-9]|1[012])-(0[1-9]|[1-2][0-9]|3[01])/
+  DATE_TIME  = /#{DATE}( |T)#{TIME}/
+  INTEGER    = /-?(0|[1-9][0-9]*)/
+  NUMBER     = /-?(0|[1-9][0-9]*)(\.[0-9]+)?/
+end
+
 class PrivacyFilter
-  attr_accessor :preserve_phone_country_code, :preserve_email_hostname, :partially_preserve_email_username
+  include Patterns
+
+  attr_accessor :preserve_phone_country_code
+  attr_accessor :preserve_email_hostname
+  attr_accessor :partially_preserve_email_username
+
   def initialize(text)
     @text = text
-    @email_regexp = /\b(([a-zA-Z0-9])[\w\+\.-]{,200})@((\g<2>((\g<2>|-){,61}\g<2>)?\.)+[a-zA-Z]{2,3}(\.[a-zA-Z]{2})?)\b/
-    @phone_regexp = /((\b00|\+)[1-9]\d{0,2}|\b0)([- \(\)]{,2}\d)\g<3>{5,10}\b/
+    @email_regexp = /\b#{EMAIL}\b/
+    @phone_regexp = /#{PHONE}\b/
   end
 
   def filtered
@@ -50,49 +69,41 @@ class PrivacyFilter
 end
 
 class Validations
+  include Patterns
+
   def self.email?(value)
-    case value
-      when /\A([a-zA-Z0-9])[\w\+\.-]{,200}@(\g<1>([0-9a-zA-Z-]{,61}\g<1>)?\.)+[a-zA-Z]{2,3}(\.[a-zA-Z]{2})?\z/
-        true
-      else
-        false
-    end
+    /\A#{EMAIL}\z/ === value
   end
 
   def self.phone?(value)
-    /\A((00|\+)[1-9]\d{0,2}|0)([- \(\)]{,2}\d)\g<3>{5,10}\z/ =~ value ? true : false
+    /\A#{PHONE}\z/ === value
   end
 
   def self.hostname?(value)
-    /\A([0-9a-zA-Z]([0-9a-zA-Z-]{,61}[0-9a-zA-Z])?\.)+[a-zA-Z]{2,3}(\.[a-zA-Z]{2})?\z/ =~ value ? true : false
+    /\A#{HOSTNAME}\z/ === value
   end
 
   def self.ip_address?(value)
-    /\A([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.\g<1>){3}\z/ =~ value ? true : false
+    /\A#{IP_ADRESS}\z/ === value
   end
 
   def self.number?(value)
-    /\A-?(0|[1-9][0-9]*)(\.[0-9]+)?\z/ =~ value ? true : false
+    /\A#{NUMBER}\z/ === value
   end
 
   def self.integer?(value)
-    /\A-?(0|[1-9][0-9]*)\z/ =~ value ? true : false
+    /\A#{INTEGER}\z/ === value
   end
 
   def self.date?(value)
-    /\A\d{4}-(0[1-9]|1[012])-(0[1-9]|[1-2][0-9]|3[01])\z/ =~ value ? true : false
+    /\A#{DATE}\z/ === value
   end
 
   def self.time?(value)
-    /\A(0[1-9]|1[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\z/ =~ value ? true : false
+    /\A#{TIME}\z/ === value
   end
 
   def self.date_time?(value)
-    case value
-      when /\A\d{4}-(0[1-9]|1[012])-(0[1-9]|[1-2][0-9]|3[01])( |T)(0[1-9]|1[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\z/
-        true
-      else
-        false
-    end
+    /\A#{DATE_TIME}\z/ === value
   end
 end
