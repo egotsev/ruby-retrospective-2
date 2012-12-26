@@ -1,44 +1,30 @@
 class Expr
   def self.build(expression)
     case expression[0]
-      when :number then Number.new(expression[1])
-      when :variable then Variable.new(expression[1])
-      when :+ then Addition.new(build(expression[1]), build(expression[2]))
-      when :* then Multiplication.new(build(expression[1]), build(expression[2]))
-      when :- then Negation.new(build(expression[1]))
-      when :sin then Sine.new(build(expression[1]))
-      when :cos then Cosine.new(build(expression[1]))
+      when :number   then Number.new         expression[1]
+      when :variable then Variable.new       expression[1]
+      when :+        then Addition.new       build(expression[1]), build(expression[2])
+      when :*        then Multiplication.new build(expression[1]), build(expression[2])
+      when :-        then Negation.new       build(expression[1])
+      when :sin      then Sine.new           build(expression[1])
+      when :cos      then Cosine.new         build(expression[1])
      end
   end
 
+  def derive(variable)
+    derivative(variable).simplify
+  end
+
   def *(other)
-    if self == Number::ZERO || other == Number::ZERO
-      Number.new(0)
-    elsif self == Number::ONE
-      other
-    elsif other == Number::ONE
-      self
-    else
-      Multiplication.new(self, other)
-    end
+    Multiplication.new self, other
   end
 
   def +(other)
-    if self == Number::ZERO
-      other
-    elsif other == Number::ZERO
-      self
-    else
-      Addition.new(self, other)
-    end
+    Addition.new self, other
   end
 
   def -@
-    if self == Number::ZERO
-      @parameter
-    else
-      Negation.new(self)
-    end
+    Negation.new self
   end
 end
 
@@ -74,7 +60,7 @@ class Binary < Expr
   end
 
   def exact?
-    @parameter1.exact? & @parameter2.exact?
+    @parameter1.simplify.exact? & @parameter2.simplify.exact?
   end
 end
 
@@ -94,7 +80,7 @@ class Number < Unary
     true
   end
 
-  def derive(variable)
+  def derivative(variable)
     Number.new(0)
   end
 
@@ -103,25 +89,29 @@ class Number < Unary
   end
 end
 
-class Addition < Binary
+class Variable < Unary
   def evaluate(environment = {})
-    @parameter1.evaluate(environment) + @parameter2.evaluate(environment)
+    environment.fetch @parameter
   end
 
   def simplify
-    if exact?
-      Number.new(evaluate)
+    self
+  end
+
+  def exact?
+    false
+  end
+
+  def derivative(variable)
+    if variable == @parameter
+      Number.new(1)
     else
-      @parameter1.simplify + @parameter2.simplify
+      Number.new(0)
     end
   end
 
-  def derive(variable)
-    (@parameter1.derive(variable) + @parameter2.derive(variable)).simplify
-  end
-
   def to_s
-    "(#{@parameter1} + #{@parameter2})"
+    @parameter.to_s
   end
 end
 
@@ -133,17 +123,39 @@ class Negation < Unary
   def simplify
     if exact?
       Number.new(evaluate)
-    else
+    elsif
       -@parameter.simplify
     end
   end
 
-  def derive(variable)
-    (-@parameter.derive(variable)).simplify
+  def derivative(variable)
+    -@parameter.derivative(variable)
   end
 
   def to_s
     "-#{@parameter}"
+  end
+end
+
+class Addition < Binary
+  def evaluate(environment = {})
+    @parameter1.evaluate(environment) + @parameter2.evaluate(environment)
+  end
+
+  def simplify
+    if exact? then Number.new(@parameter1.simplify.evaluate + @parameter2.simplify.evaluate)
+    elsif @parameter1 == Number::ZERO then @parameter2.simplify
+    elsif @parameter2 == Number::ZERO then @parameter1.simplify
+    else Addition.new @parameter1.simplify, @parameter2.simplify
+    end
+  end
+
+  def derivative(variable)
+    @parameter1.derivative(variable) + @parameter2.derivative(variable)
+  end
+
+  def to_s
+    "(#{@parameter1} + #{@parameter2})"
   end
 end
 
@@ -153,46 +165,20 @@ class Multiplication < Binary
   end
 
   def simplify
-    if exact?
-      Number.new(evaluate)
-    else
-      @parameter1.simplify * @parameter2.simplify
+    if exact? then Number.new(@parameter1.simplify.evaluate * @parameter2.simplify.evaluate)
+    elsif @parameter1 == Number::ZERO || @parameter2 == Number::ZERO then Number.new(0)
+    elsif @parameter1 == Number::ONE then @parameter2.simplify
+    elsif @parameter2 == Number::ONE then @parameter1.simplify
+    else Multiplication.new @parameter1.simplify, @parameter2.simplify
     end
   end
 
-  def derive(variable)
-    result = @parameter1.derive(variable) * @parameter2 + @parameter1 * @parameter2.derive(variable)
-    result.simplify
+  def derivative(variable)
+    @parameter1.derivative(variable) * @parameter2 + @parameter1 * @parameter2.derivative(variable)
   end
 
   def to_s
     "(#{@parameter1} * #{@parameter2})"
-  end
-end
-
-class Variable < Unary
-  def evaluate(environment = {})
-    environment.values_at(@parameter)[0]
-  end
-
-  def simplify
-    self
-  end
-
-  def exact?
-    false
-  end
-
-  def derive(variable)
-    if variable == @parameter
-      Number.new(1)
-    else
-      Number.new(0)
-    end
-  end
-
-  def to_s
-    @parameter.to_s
   end
 end
 
@@ -209,8 +195,8 @@ class Sine < Unary
     end
   end
 
-  def derive(variable)
-    (@parameter.derive(variable) * Cosine.new(@parameter)).simplify
+  def derivative(variable)
+    @parameter.derivative(variable) * Cosine.new(@parameter)
   end
 
   def to_s
@@ -231,8 +217,8 @@ class Cosine < Unary
     end
   end
 
-  def derive(variable)
-    (@parameter.derive(variable) * (- Sine.new(@parameter))).simplify
+  def derivative(variable)
+    @parameter.derivative(variable) * (- Sine.new(@parameter))
   end
 
   def to_s
