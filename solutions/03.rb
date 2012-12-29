@@ -65,9 +65,6 @@ class Binary < Expr
 end
 
 class Number < Unary
-  ZERO = Number.new(0)
-  ONE = Number.new(1)
-
   def evaluate(environment = {})
     @parameter
   end
@@ -81,11 +78,19 @@ class Number < Unary
   end
 
   def derivative(variable)
-    Number.new(0)
+    Number.new 0
   end
 
   def to_s
     @parameter.to_s
+  end
+
+  def self.zero
+    Number.new 0
+  end
+
+  def self.one
+    Number.new 1
   end
 end
 
@@ -104,9 +109,9 @@ class Variable < Unary
 
   def derivative(variable)
     if variable == @parameter
-      Number.new(1)
+      Number.new 1
     else
-      Number.new(0)
+      Number.new 0
     end
   end
 
@@ -144,8 +149,8 @@ class Addition < Binary
 
   def simplify
     if exact? then Number.new(@parameter1.simplify.evaluate + @parameter2.simplify.evaluate)
-    elsif @parameter1 == Number::ZERO then @parameter2.simplify
-    elsif @parameter2 == Number::ZERO then @parameter1.simplify
+    elsif @parameter1 == Number.zero then @parameter2.simplify
+    elsif @parameter2 == Number.zero then @parameter1.simplify
     else Addition.new @parameter1.simplify, @parameter2.simplify
     end
   end
@@ -166,9 +171,9 @@ class Multiplication < Binary
 
   def simplify
     if exact? then Number.new(@parameter1.simplify.evaluate * @parameter2.simplify.evaluate)
-    elsif @parameter1 == Number::ZERO || @parameter2 == Number::ZERO then Number.new(0)
-    elsif @parameter1 == Number::ONE then @parameter2.simplify
-    elsif @parameter2 == Number::ONE then @parameter1.simplify
+    elsif @parameter1 == Number.zero || @parameter2 == Number.zero then Number.new(0)
+    elsif @parameter1 == Number.one then @parameter2.simplify
+    elsif @parameter2 == Number.one then @parameter1.simplify
     else Multiplication.new @parameter1.simplify, @parameter2.simplify
     end
   end
