@@ -73,11 +73,11 @@ class Criteria
   end
 
   def &(other)
-    Criteria.new { |song| matches?(song) and other.matches?(song)}
+    Criteria.new { |song| matches?(song) and other.matches?(song) }
   end
 
   def |(other)
-    Criteria.new { |song| matches?(song) or other.matches?(song)}
+    Criteria.new { |song| matches?(song) or other.matches?(song) }
   end
 
   def !
