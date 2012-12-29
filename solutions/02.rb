@@ -15,8 +15,8 @@ class Collection
     @songs = songs
   end
 
-  def each
-    @songs.each { |song| yield song }
+  def each(&block)
+    @songs.each(&block)
   end
 
   def Collection.parse(text)
